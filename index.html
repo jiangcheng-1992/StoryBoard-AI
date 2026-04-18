@@ -1,22 +1,900 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SoulPet 灵伴</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #root {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: transparent;
-        user-select: none;
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>StoryBoard AI v12 — 即梦分镜逆向工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--bg2:#12121a;--card:#1a1a25;--card2:#222233;--border:#2a2a3a;--accent:#6c5ce7;--accent2:#a29bfe;--glow:rgba(108,92,231,.3);--text:#e8e8f0;--text2:#8888a0;--text3:#5a5a70;--ok:#00b894;--warn:#fdcb6e;--err:#e17055;--grad:linear-gradient(135deg,#6c5ce7,#a29bfe)}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.hdr{position:sticky;top:0;z-index:100;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 20px}
+.hdr-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.logo-i{width:34px;height:34px;background:var(--grad);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo-t{font-size:17px;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-b{font-size:11px;padding:2px 8px;background:rgba(108,92,231,.15);border:1px solid rgba(108,92,231,.3);border-radius:20px;color:var(--accent2)}
+.ctn{max-width:1200px;margin:0 auto;padding:20px 20px 100px}
+.stl{font-size:14px;font-weight:600;color:var(--text2);letter-spacing:1.2px;margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase}.stl::before{content:'';width:3px;height:15px;background:var(--grad);border-radius:2px}
+.tabs{display:flex;margin-bottom:18px;background:var(--bg2);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;padding:11px 14px;text-align:center;font-size:14px;font-weight:500;color:var(--text2);background:transparent;border:none;border-radius:8px;cursor:pointer;transition:all .3s}.tab.on{background:var(--accent);color:#fff;box-shadow:0 4px 15px var(--glow)}
+.pnl{display:none}.pnl.on{display:block}
+.url-row{display:flex;gap:12px;margin-bottom:12px}
+.url-in{flex:1;padding:13px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;outline:0;transition:.3s}.url-in:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}.url-in::placeholder{color:var(--text3)}
+.upz{display:block;border:2px dashed var(--border);border-radius:16px;padding:44px 24px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bg2);user-select:none}.upz:hover,.upz.drag{border-color:var(--accent);background:rgba(108,92,231,.05)}.upz:active{transform:scale(.98)}
+.upz-icon{font-size:44px;margin-bottom:14px}.upz-t{font-size:15px;font-weight:600;margin-bottom:6px}.upz-d{font-size:13px;color:var(--text2)}
+.upz input[type=file]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.vpre{display:none;margin-top:14px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--card)}.vpre video{width:100%;max-height:380px;object-fit:contain;background:#000}
+.vpre-info{padding:10px 14px;display:flex;align-items:center;justify-content:space-between}.vpre-name{font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%}.vpre-rm{font-size:13px;color:var(--err);cursor:pointer;background:0;border:0;padding:4px 8px}
+.btn{padding:13px 26px;border-radius:12px;font-size:15px;font-weight:600;border:0;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:8px}
+.btn1{background:var(--grad);color:#fff;box-shadow:0 4px 15px var(--glow)}.btn1:hover{transform:translateY(-2px)}.btn1:active{transform:scale(.97)}.btn1:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn2{background:var(--card);color:var(--text);border:1px solid var(--border)}.btn2:hover{background:var(--card2)}
+.btnf{width:100%;justify-content:center}
+.srow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
+.sitem{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}.slbl{font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.ssel{width:100%;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:0;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,184,148,.1);border:1px solid rgba(0,184,148,.3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:13px;color:var(--ok)}.ai-badge b{color:#fff}
+.url-hint{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:12px;color:var(--text2);line-height:1.7}
+.url-hint b{color:var(--accent2)}
+.url-hint code{background:rgba(108,92,231,.15);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--accent2)}
+.notice{background:rgba(253,203,110,.1);border:1px solid rgba(253,203,110,.3);border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:var(--warn);line-height:1.6;display:none}.notice.on{display:block}.notice strong{color:#fff}
+.proc{display:none;position:fixed;inset:0;background:rgba(10,10,15,.92);backdrop-filter:blur(10px);z-index:200;justify-content:center;align-items:center}.proc.on{display:flex}
+.proc-c{text-align:center;max-width:380px;padding:20px}.spin{width:60px;height:60px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 22px}@keyframes sp{to{transform:rotate(360deg)}}
+.proc-t{font-size:17px;font-weight:600;margin-bottom:10px}.proc-sub{font-size:13px;color:var(--text2);min-height:20px;word-break:break-all}
+.proc-steps{text-align:left;margin-top:18px}.pstep{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;color:var(--text3);transition:.3s}.pstep.on{color:var(--accent2)}.pstep.ok{color:var(--ok)}.pstep-i{width:20px;text-align:center;flex-shrink:0}
+.prog-bar{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:16px;overflow:hidden}.prog-fill{height:100%;background:var(--grad);border-radius:2px;width:0;transition:width .4s}
+.res{display:none}.res.on{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}.stat-v{font-size:22px;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.stat-l{font-size:11px;color:var(--text2);margin-top:3px}
+.g9{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:22px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px}
+.gc{border-radius:8px;overflow:hidden;position:relative;cursor:pointer;transition:transform .2s;background:var(--bg2);border:1px solid var(--border)}.gc:hover{transform:scale(1.02);z-index:1;border-color:var(--accent)}.gc img{display:block;width:100%;height:auto}
+.gc-n{position:absolute;top:5px;left:5px;width:22px;height:22px;background:rgba(108,92,231,.9);color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.gc-t{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.7);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px}
+.full-script{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:22px;position:relative}
+.full-script-title{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--accent2)}
+.full-script .overall{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;line-height:1.7;font-size:13px;color:var(--text);white-space:pre-wrap}
+.seq-block{border-left:3px solid var(--accent);padding-left:14px;margin-bottom:14px}
+.seq-label{font-size:12px;font-weight:700;color:var(--warn);margin-bottom:6px;letter-spacing:.5px}
+.shot-row{display:grid;grid-template-columns:70px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid rgba(42,42,58,.5);font-size:13px;line-height:1.6}
+.shot-row:last-child{border-bottom:0}
+.shot-time{color:var(--accent2);font-weight:600;font-family:'SF Mono',monospace;font-size:12px}
+.shot-content{color:var(--text)}
+.shot-content .cam-tag{display:inline-block;background:rgba(253,203,110,.15);color:var(--warn);padding:1px 6px;border-radius:4px;font-size:11px;margin-right:4px}
+.narr-tag{display:inline-block;background:rgba(108,92,231,.12);color:var(--accent2);padding:2px 8px;border-radius:4px;font-size:12px;margin-top:4px;font-style:italic;border:1px dashed rgba(162,155,254,.3)}
+.merged-wrap{margin-bottom:22px;text-align:center}.merged-wrap img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+.sbl{display:flex;flex-direction:column;gap:14px}
+.sbc{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.3s}.sbc:hover{border-color:var(--accent)}
+.sbc-h{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(108,92,231,.05);border-bottom:1px solid var(--border)}
+.sn{width:30px;height:30px;background:var(--grad);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.sm{flex:1}.sm-t{font-size:14px;font-weight:600}.sm-tags{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.stag{font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(108,92,231,.1);color:var(--accent2);border:1px solid rgba(108,92,231,.2)}
+.sbc-b{display:grid;grid-template-columns:140px 1fr;gap:14px;padding:14px}
+.sthumb{width:140px;border-radius:8px;overflow:hidden;background:var(--bg2);border:1px solid var(--border);flex-shrink:0}.sthumb img{display:block;width:100%;height:auto}
+.sdets{display:flex;flex-direction:column;gap:10px;min-width:0}.sf{font-size:13px}.sf-l{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;font-weight:600}.sf-v{color:var(--text);line-height:1.6}
+.sf-v.empty{color:var(--text3);font-style:italic}
+.pblk{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;position:relative;margin-top:6px}
+.ptxt{font-family:'SF Mono','Fira Code',monospace;font-size:12px;line-height:1.6;color:var(--accent2);word-break:break-word;padding-right:50px;white-space:pre-wrap}
+.cpb{position:absolute;top:6px;right:6px;padding:4px 10px;font-size:11px;background:var(--accent);color:#fff;border:0;border-radius:6px;cursor:pointer;opacity:.8;transition:.2s}.cpb:hover{opacity:1}
+.ebar{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ok);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:500;z-index:300;transition:transform .3s;pointer-events:none}.toast.show{transform:translateX(-50%) translateY(0)}
+.mdl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:250;justify-content:center;align-items:center;padding:20px}.mdl.on{display:flex}
+.mdl-c{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:22px}.mdl-x{float:right;font-size:24px;background:0;border:0;color:var(--text2);cursor:pointer}.mdl-img{width:100%;border-radius:8px;margin:14px 0}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.sbc-b{grid-template-columns:1fr}.sthumb{width:100%}.srow{grid-template-columns:1fr}.url-row{flex-direction:column}}
+@media(max-width:480px){.hdr{padding:10px 14px}.ctn{padding:14px 14px 80px}.g9{gap:3px;padding:6px}}
+.fee-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;justify-content:center;align-items:center}.fee-modal.on{display:flex}.fee-box{background:var(--card);border:2px solid var(--err);border-radius:20px;padding:30px;max-width:400px;text-align:center;animation:feeIn .3s}.fee-box h2{font-size:20px;margin-bottom:12px;color:var(--err)}.fee-box p{font-size:15px;line-height:1.8;color:var(--text);margin-bottom:20px}.fee-box .fee-emoji{font-size:50px;margin-bottom:16px}.fee-box button{padding:12px 30px;border-radius:12px;font-size:15px;font-weight:600;border:0;cursor:pointer;background:var(--grad);color:#fff}@keyframes feeIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<header class="hdr"><div class="hdr-in"><div class="logo-i">🎬</div><span class="logo-t">StoryBoard AI</span><span class="logo-b">即梦适配 v12</span></div></header>
+<div class="ctn">
+  <section id="inputSection">
+    <div style="margin-bottom:14px;padding:10px 16px;background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:10px;font-size:13px;color:var(--accent2)">🎙️ <b>v12 升级：</b>集成豆包语音ASR大模型，从视频音频轨道提取真实台词/旁白（非AI画面猜测），精准识别每句对话 &nbsp;<span style="color:var(--ok);font-size:12px">| 零配置，开箱即用</span></div>
+    <div class="stl">视频输入</div>
+    <div class="tabs" id="tabBar"><button class="tab on" data-tab="upload">📁 本地上传 <span style="font-size:10px;background:var(--ok);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle">推荐</span></button><button class="tab" data-tab="url">🔗 抖音链接</button></div>
+    <div class="pnl" id="pnl-url">
+      <div class="url-row"><input type="text" class="url-in" id="vUrl" placeholder="粘贴抖音视频链接 / 视频直链URL（mp4/webm）..."><button class="btn btn1" id="parseBtn">解析</button></div>
+      <div class="url-hint">
+        <b>支持的链接格式：</b><br>
+        ① 抖音精选/搜索页：<code>douyin.com/jingxuan/...?modal_id=xxx</code><br>
+        ② 抖音视频页：<code>douyin.com/video/xxx</code><br>
+        ③ 抖音分享短链：<code>v.douyin.com/xxx</code><br>
+        ④ 视频直链：<code>*.mp4 / *.webm</code> 等直接播放地址<br>
+        <span style="color:var(--warn)">⚠️ 抖音链接将由服务端解析并代理媒体资源，首次可能需要10-20秒</span>
+      </div>
+    </div>
+    <div class="pnl on" id="pnl-upload"><label class="upz" id="upZone"><input type="file" id="fInput" accept="video/mp4,video/quicktime,video/webm,video/*"><div class="upz-icon">📽️</div><div class="upz-t">点击或拖拽上传视频</div><div class="upz-d">支持 MP4、MOV、WebM</div></label></div>
+    <div class="vpre" id="vPre"><video id="vPlayer" controls playsinline crossorigin="anonymous"></video><div class="vpre-info"><span class="vpre-name" id="vName"></span><button class="vpre-rm" id="rmBtn">✕ 移除</button></div></div>
+    <div class="notice" id="urlNotice"></div>
+    <div class="ai-badge">🤖 <b>豆包AI视觉分析</b> 已就绪 — 自动识别画面内容、角色动作、场景运镜</div>
+    <div style="margin:10px 0;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:16px">🎙</span>
+        <span style="font-size:14px;font-weight:600;color:var(--accent2)">语音识别（已就绪 ✅）</span>
+        <span style="font-size:11px;padding:2px 8px;background:rgba(0,184,148,.12);color:var(--ok);border-radius:10px;border:1px solid rgba(0,184,148,.25)">豆包语音ASR大模型</span>
+      </div>
+      <div id="asrStatusBox" style="padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;line-height:1.7">
+        正在检测服务端语音识别配置...
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);line-height:1.7">
+        密钥仅保存在服务端环境变量中，前端页面不再暴露真实 API Key
+      </div>
+    </div>
+    <div class="srow">
+      <div class="sitem"><div class="slbl">分镜数量</div><select class="ssel" id="sCnt"><option value="6">6</option><option value="9" selected>9</option><option value="12">12</option></select></div>
+      <div class="sitem"><div class="slbl">画面比例</div><select class="ssel" id="sRatio"><option value="9:16" selected>9:16 竖屏</option><option value="16:9">16:9 横屏</option><option value="1:1">1:1</option></select></div>
+    </div>
+    <button class="btn btn1 btnf" id="goBtn" disabled>🚀 开始分析 · 生成分镜</button>
+  </section>
+
+  <section class="res" id="resSec">
+    <div class="stats"><div class="stat"><div class="stat-v" id="s1">-</div><div class="stat-l">分镜数</div></div><div class="stat"><div class="stat-v" id="s2">-</div><div class="stat-l">总时长</div></div><div class="stat"><div class="stat-v" id="s3">-</div><div class="stat-l">分析模式</div></div><div class="stat"><div class="stat-v" id="s4">-</div><div class="stat-l">比例</div></div></div>
+    <div class="stl">九宫格分镜总览</div>
+    <div class="g9" id="gridView"></div>
+    <div class="stl">合并图</div>
+    <div class="merged-wrap" id="mergedWrap"></div>
+    <div class="stl">完整分镜脚本（即梦适配）</div>
+    <div class="full-script" id="fullScript"></div>
+    <div class="stl">逐镜详情</div>
+    <div class="sbl" id="sbList"></div>
+    <div class="ebar">
+      <button class="btn btn1" id="expMdBtn">📄 导出Markdown</button>
+      <button class="btn btn2" id="expPmBtn">📋 复制全部脚本</button>
+      <button class="btn btn2" id="dlGridBtn">🖼️ 下载合并图</button>
+    </div>
+  </section>
+</div>
+<div class="proc" id="procOv"><div class="proc-c"><div class="spin"></div><div class="proc-t" id="procTitle">AI 正在分析视频</div><div class="proc-sub" id="procSub">请稍候...</div><div class="proc-steps"><div class="pstep" id="ps0"><span class="pstep-i">⏳</span> 解析视频链接</div><div class="pstep" id="ps1"><span class="pstep-i">⏳</span> 提取视频关键帧</div><div class="pstep" id="ps2"><span class="pstep-i">⏳</span> AI视觉识别每帧内容</div><div class="pstep" id="ps3"><span class="pstep-i">⏳</span> 生成整体描述 & 角色设定</div><div class="pstep" id="ps4"><span class="pstep-i">⏳</span> 生成逐镜分镜脚本</div><div class="pstep" id="ps5"><span class="pstep-i">⏳</span> 构建即梦Prompt & 运镜</div></div><div class="prog-bar"><div class="prog-fill" id="progFill"></div></div></div></div>
+<div class="mdl" id="imgMdl"><div class="mdl-c" onclick="event.stopPropagation()"><button class="mdl-x" id="mdlClose">✕</button><h3 id="mdlTtl" style="margin-top:6px"></h3><img class="mdl-img" id="mdlImg"><div class="sf"><div class="sf-l">AI分析</div><div class="sf-v" id="mdlDesc"></div></div><div class="pblk" style="margin-top:12px"><button class="cpb" id="mdlCopy">复制</button><div class="ptxt" id="mdlPt"></div></div></div></div>
+<div class="toast" id="toast"></div>
+<div class="fee-modal" id="feeModal"><div class="fee-box"><div class="fee-emoji">💸</div><h2>模型已欠费！</h2><p>豆包AI视觉模型额度不足<br>请催促<b style="color:var(--accent2)">姜承</b>去充值 💰</p><button onclick="closeFeeModal()">知道了，催他去！</button></div></div>
+
+<script>
+var SERVER_CONFIG = { asrEnabled: false, visionEnabled: false };
+var curVideo=null,results=null,mergedDataUrl=null;
+
+var $=function(id){return document.getElementById(id)};
+
+initServerConfig();
+
+async function apiJson(url, options) {
+  var resp = await fetch(url, options || {});
+  var data = null;
+  try { data = await resp.json(); } catch (e) {}
+  if (!resp.ok) {
+    var msg = data && data.error ? data.error : ('请求失败(' + resp.status + ')');
+    if (data && data.details) msg += ': ' + data.details;
+    throw new Error(msg);
+  }
+  return data || {};
+}
+
+async function initServerConfig() {
+  try {
+    SERVER_CONFIG = await apiJson('/api/config');
+  } catch (e) {
+    console.warn('配置读取失败:', e.message);
+    SERVER_CONFIG = { asrEnabled: false, visionEnabled: false };
+  }
+  updateAsrStatus();
+}
+
+function updateAsrStatus() {
+  var box = $('asrStatusBox');
+  if (!box) return;
+  if (SERVER_CONFIG.asrEnabled) {
+    box.innerHTML = '✅ 已检测到服务端 ASR 配置，语音识别将由 Render 后端代为调用，浏览器不保存真实密钥。';
+    box.style.borderColor = 'rgba(0,184,148,.25)';
+    box.style.color = 'var(--ok)';
+  } else {
+    box.innerHTML = '⚠️ 服务端暂未配置 ASR 密钥，当前会跳过语音识别，仅保留画面分析。';
+    box.style.borderColor = 'rgba(253,203,110,.3)';
+    box.style.color = 'var(--warn)';
+  }
+}
+
+$('tabBar').addEventListener('click',function(e){var b=e.target;while(b&&!b.classList.contains('tab'))b=b.parentElement;if(!b||!b.dataset.tab)return;var t=b.dataset.tab;this.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b)});$('pnl-url').classList.toggle('on',t==='url');$('pnl-upload').classList.toggle('on',t==='upload')});
+$('fInput').addEventListener('change',function(){if(this.files&&this.files.length)loadFile(this.files[0])});
+var upZone=$('upZone');
+['dragenter','dragover'].forEach(function(ev){upZone.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();upZone.classList.add('drag')})});
+['dragleave','drop'].forEach(function(ev){upZone.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();upZone.classList.remove('drag')})});
+upZone.addEventListener('drop',function(e){var f=e.dataTransfer.files;if(f.length&&f[0].type.startsWith('video/'))loadFile(f[0])});
+$('parseBtn').addEventListener('click',handleUrlParse);$('vUrl').addEventListener('keydown',function(e){if(e.key==='Enter')handleUrlParse()});
+$('rmBtn').addEventListener('click',rmVideo);$('goBtn').addEventListener('click',startAnalysis);
+$('expMdBtn').addEventListener('click',exportMd);$('expPmBtn').addEventListener('click',exportPrompts);$('dlGridBtn').addEventListener('click',dlMerged);
+$('imgMdl').addEventListener('click',function(){this.classList.remove('on')});$('mdlClose').addEventListener('click',function(){$('imgMdl').classList.remove('on')});
+$('mdlCopy').addEventListener('click',function(){cpTxt($('mdlPt').textContent)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')$('imgMdl').classList.remove('on')});
+
+function loadFile(f){curVideo={type:'file',file:f,name:f.name};showPre(URL.createObjectURL(f),'📁 '+f.name+' ('+(f.size/1048576).toFixed(1)+'MB)');$('goBtn').disabled=false;hideNotice()}
+function showPre(src,name){if(src){$('vPlayer').src=src}else{$('vPlayer').removeAttribute('src')}$('vName').textContent=name;$('vPre').style.display='block'}
+function rmVideo(){curVideo=null;$('vPre').style.display='none';$('vPlayer').src='';$('goBtn').disabled=true;hideNotice()}
+function showNotice(msg,type){var n=$('urlNotice');n.innerHTML=msg;n.className='notice on';if(type==='ok')n.style.borderColor='rgba(0,184,148,.3)',n.style.background='rgba(0,184,148,.1)',n.style.color='var(--ok)';else if(type==='err')n.style.borderColor='rgba(225,112,85,.3)',n.style.background='rgba(225,112,85,.1)',n.style.color='var(--err)';else n.style.borderColor='rgba(253,203,110,.3)',n.style.background='rgba(253,203,110,.1)',n.style.color='var(--warn)'}
+function hideNotice(){$('urlNotice').className='notice'}
+
+/* ========== 抖音链接解析 ========== */
+function extractVideoId(url) {
+  // 格式1: modal_id=7621799178078866707
+  var m = url.match(/modal_id=(\d{15,25})/);
+  if (m) return m[1];
+  // 格式2: douyin.com/video/7621799178078866707
+  m = url.match(/\/video\/(\d{15,25})/);
+  if (m) return m[1];
+  // 格式3: douyin.com/note/xxx
+  m = url.match(/\/note\/(\d{15,25})/);
+  if (m) return m[1];
+  // 格式4: 纯数字ID
+  m = url.match(/^(\d{15,25})$/);
+  if (m) return m[1];
+  return null;
+}
+
+function isDirectVideo(url) {
+  return /\.(mp4|webm|mov|m3u8)(\?|$)/i.test(url) || /mime_type=video/i.test(url);
+}
+
+function isDouyinUrl(url) {
+  return /douyin\.com/i.test(url) || /v\.douyin\.com/i.test(url) || /iesdouyin\.com/i.test(url);
+}
+
+async function handleUrlParse() {
+  var u = $('vUrl').value.trim();
+  if (!u) { toast('请输入链接'); return; }
+  
+  $('parseBtn').disabled = true;
+  $('parseBtn').textContent = '解析中...';
+  
+  try {
+    showNotice(
+      isDouyinUrl(u)
+        ? '🔄 正在通过服务端解析抖音视频链接...'
+        : (isDirectVideo(u) ? '🔄 正在通过服务端验证视频直链...' : '🔄 正在通过服务端处理远程视频链接...'),
+      'warn'
+    );
+
+    var result = await apiJson('/api/video/resolve', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url:u})
+    });
+
+    curVideo = {
+      type:'url',
+      url:result.url,
+      proxyUrl:result.proxyUrl,
+      videoId:result.videoId || extractVideoId(result.url),
+      name:result.name || u.substring(0,50)
+    };
+
+    showPre(curVideo.proxyUrl || curVideo.url, (result.type === 'douyin' ? '🎬 ' : '🔗 ') + curVideo.name.substring(0,60));
+    $('goBtn').disabled = false;
+    showNotice('✅ 链接解析成功，后续预览、抽帧和音频读取会优先走服务端代理，减少跨域失败', 'ok');
+  } catch(e) {
+    showNotice('❌ 解析失败: '+e.message, 'err');
+  } finally {
+    $('parseBtn').disabled = false;
+    $('parseBtn').textContent = '解析';
+  }
+}
+
+/* ========== 提取帧 ========== */
+function loadVideoElement(videoSrc) {
+  return new Promise(function(resolve, reject) {
+    var vid = document.createElement('video');
+    vid.crossOrigin = 'anonymous';
+    vid.muted = true;
+    vid.playsInline = true;
+    
+    var tryCount = 0;
+    var sources = [];
+    if (curVideo && curVideo.proxyUrl) sources.push(curVideo.proxyUrl);
+    if (videoSrc) sources.push(videoSrc);
+    
+    sources = sources.filter(function(src, idx){ return src && sources.indexOf(src) === idx; });
+    
+    function tryNext() {
+      if (tryCount >= sources.length) {
+        reject(new Error('所有视频源加载失败，建议下载视频后使用本地上传'));
+        return;
       }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+      vid.src = sources[tryCount];
+      vid.onloadedmetadata = function() { resolve(vid); };
+      vid.onerror = function() { tryCount++; tryNext(); };
+      vid.load();
+    }
+    tryNext();
+  });
+}
+
+function extractFrames(videoEl, n) {
+  return new Promise(function(resolve) {
+    var vw=videoEl.videoWidth,vh=videoEl.videoHeight,tw,th;
+    if(vw>=vh){tw=Math.min(480,vw);th=Math.round(tw*vh/vw)}else{th=Math.min(640,vh);tw=Math.round(th*vw/vh)}
+    var c=document.createElement('canvas');c.width=tw;c.height=th;var ctx=c.getContext('2d',{willReadFrequently:true});
+    var dur=videoEl.duration,frames=[],cur=0;
+    function next(){if(cur>=n){resolve(frames);return}videoEl.currentTime=(dur/(n+1))*(cur+1)}
+    videoEl.onseeked=function(){
+      ctx.drawImage(videoEl,0,0,tw,th);
+      var dataUrl=c.toDataURL('image/jpeg',.82);
+      var base64=dataUrl.split(',')[1];
+      var timeStart=videoEl.currentTime;
+      var timeEnd=cur<n-1?(dur/(n+1))*(cur+2):dur;
+      frames.push({dataUrl:dataUrl,base64:base64,time:timeStart,timeEnd:timeEnd,w:tw,h:th,idx:cur});
+      cur++;next();
+    };
+    next();
+  });
+}
+
+
+/* ========== 真实语音识别（豆包语音ASR大模型） ========== */
+
+async function extractAudioFromVideo(videoSource) {
+  // 使用 Web Audio API 从视频中提取音频轨道，编码为 WAV base64
+  return new Promise(async function(resolve) {
+    try {
+      var arrayBuffer;
+      if (videoSource instanceof File) {
+        if (videoSource.size > 100*1024*1024) {
+          console.warn('[音频提取] 文件过大:', Math.round(videoSource.size/1024/1024)+'MB');
+          resolve(null); return;
+        }
+        arrayBuffer = await videoSource.arrayBuffer();
+      } else if (typeof videoSource === 'string') {
+        try {
+          var resp = await fetch(videoSource);
+          if (!resp.ok) throw new Error('fetch fail');
+          arrayBuffer = await resp.arrayBuffer();
+        } catch(e) {
+          console.warn('[音频提取] 无法获取视频URL:', e.message);
+          resolve(null); return;
+        }
+      } else { resolve(null); return; }
+
+      // 解码音频
+      var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var audioBuffer;
+      try {
+        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+      } catch(e) {
+        console.warn('[音频提取] 解码音频失败:', e.message);
+        audioCtx.close();
+        resolve(null); return;
+      }
+      audioCtx.close();
+
+      // 重采样到 16kHz 单声道
+      var sampleRate = 16000;
+      var numChannels = 1;
+      var origRate = audioBuffer.sampleRate;
+      var origData = audioBuffer.getChannelData(0); // 取第一声道
+
+      // 简单线性插值重采样
+      var ratio = origRate / sampleRate;
+      var newLen = Math.round(origData.length / ratio);
+      
+      // 限制音频长度为120分钟（7200秒 * 16000 = 115200000 samples）
+      var maxSamples = 7200 * sampleRate;
+      if (newLen > maxSamples) newLen = maxSamples;
+      
+      var resampled = new Float32Array(newLen);
+      for (var i = 0; i < newLen; i++) {
+        var srcIdx = i * ratio;
+        var idx0 = Math.floor(srcIdx);
+        var idx1 = Math.min(idx0 + 1, origData.length - 1);
+        var frac = srcIdx - idx0;
+        resampled[i] = origData[idx0] * (1 - frac) + origData[idx1] * frac;
+      }
+
+      // 编码为 WAV (PCM 16-bit)
+      var wavBuffer = encodeWAV(resampled, sampleRate, numChannels);
+      
+      // 转 base64
+      var bytes = new Uint8Array(wavBuffer);
+      var binary = '';
+      var chunkSize = 8192;
+      for (var i = 0; i < bytes.length; i += chunkSize) {
+        var chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      var b64 = btoa(binary);
+      
+      console.log('[音频提取] 成功，采样率:', sampleRate, '时长:', (newLen/sampleRate).toFixed(1)+'s', '大小:', Math.round(wavBuffer.byteLength/1024)+'KB');
+      resolve(b64);
+    } catch(e) {
+      console.error('[音频提取] 失败:', e);
+      resolve(null);
+    }
+  });
+}
+
+function encodeWAV(samples, sampleRate, numChannels) {
+  var bitsPerSample = 16;
+  var byteRate = sampleRate * numChannels * bitsPerSample / 8;
+  var blockAlign = numChannels * bitsPerSample / 8;
+  var dataSize = samples.length * (bitsPerSample / 8);
+  var buffer = new ArrayBuffer(44 + dataSize);
+  var view = new DataView(buffer);
+
+  // RIFF header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(view, 8, 'WAVE');
+  
+  // fmt sub-chunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // SubChunk1Size (PCM)
+  view.setUint16(20, 1, true);  // AudioFormat (PCM)
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  
+  // data sub-chunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+  
+  // Write PCM samples (clamp to -1..1, convert to int16)
+  var offset = 44;
+  for (var i = 0; i < samples.length; i++) {
+    var s = Math.max(-1, Math.min(1, samples[i]));
+    var val = s < 0 ? s * 32768 : s * 32767;
+    view.setInt16(offset, val, true);
+    offset += 2;
+  }
+  
+  return buffer;
+}
+
+function writeString(view, offset, string) {
+  for (var i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+async function realASR(audioBase64) {
+  if (!SERVER_CONFIG.asrEnabled) {
+    console.log('[ASR] 服务端未配置语音识别，跳过');
+    return null;
+  }
+  console.log('[ASR] 发送到服务端代理，音频大小:', Math.round(audioBase64.length * 3/4 / 1024)+'KB');
+  var data = await apiJson('/api/asr', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({audioBase64: audioBase64})
+  });
+  console.log('[ASR] 成功:', JSON.stringify(data).substring(0, 500));
+  return data;
+}
+
+function parseASRResponse(asrData) {
+  // 解析豆包语音ASR返回的utterances，提取带时间戳的文本
+  if (!asrData || !asrData.result) return [];
+  
+  var result = asrData.result;
+  var utterances = result.utterances || [];
+  
+  if (utterances.length === 0 && result.text) {
+    // 没有分句但有整体文本
+    var dur = (asrData.audio_info && asrData.audio_info.duration) || 0;
+    return [{start: 0, end: dur / 1000, text: result.text}];
+  }
+  
+  return utterances.map(function(u) {
+    return {
+      start: (u.start_time || 0) / 1000,  // ms -> seconds
+      end: (u.end_time || 0) / 1000,
+      text: u.text || ''
+    };
+  }).filter(function(u) { return u.text.trim().length > 0; });
+}
+
+function matchASRToFrames(asrResults, frames) {
+  if (!asrResults || asrResults.length === 0) return {};
+  var map = {};
+  frames.forEach(function(f, idx) {
+    var ts = [];
+    asrResults.forEach(function(seg) {
+      var ss = seg.start || 0, se = seg.end || (ss+3);
+      // 时间范围重叠检测
+      if (ss < f.timeEnd && se > f.time) ts.push(seg.text);
+    });
+    if (ts.length > 0) map[idx] = ts.join('；');
+  });
+  console.log('[ASR匹配]', Object.keys(map).length, '帧有台词，共', asrResults.length, '段语音');
+  return map;
+}
+
+/* ========== AI视觉分析 ========== */
+async function aiAnalyzeFrames(frames) {
+  var payloadFrames = frames.map(function(f, i){
+    return {
+      base64: f.base64,
+      index: i,
+      timeLabel: fmtTime(f.time)+'-'+fmtTime(f.timeEnd)
+    };
+  });
+  var data;
+  try {
+    data = await apiJson('/api/ai/frames', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({frames: payloadFrames})
+    });
+  } catch (e) {
+    if (/402|403|insufficient|quota|balance|billing|欠费|余额不足|额度/i.test(e.message)) {
+      document.getElementById('feeModal').classList.add('on');
+      throw new Error('模型已欠费，请催促姜承去充值！');
+    }
+    throw e;
+  }
+  var text = data.content || '';
+  return parseAIResponse(text);
+}
+
+function parseAIResponse(text) {
+  console.log('[AI原始返回]', text);
+  var overall = '';
+  var shots = [];
+
+  // 提取整体描述（---SPLIT---之前 或 JSON之前的文字）
+  var splitIdx = text.indexOf('---SPLIT---');
+  if (splitIdx !== -1) {
+    overall = text.substring(0, splitIdx).trim();
+  }
+
+  // 策略1: 匹配 ```json ... ``` 代码块（支持多种格式）
+  var jsonStr = '';
+  var codeBlocks = text.match(/```(?:json)?\s*([\s\S]*?)```/g);
+  if (codeBlocks) {
+    for (var i = 0; i < codeBlocks.length; i++) {
+      var inner = codeBlocks[i].replace(/```(?:json)?\s*/,'').replace(/```\s*$/,'').trim();
+      if (inner.charAt(0) === '[') { jsonStr = inner; break; }
+    }
+  }
+
+  // 策略2: 直接找最长的 [...] 数组
+  if (!jsonStr) {
+    var allArrays = [];
+    var depth = 0, start = -1;
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] === '[' && depth === 0) { start = i; depth++; }
+      else if (text[i] === '[') depth++;
+      else if (text[i] === ']') { depth--; if (depth === 0 && start >= 0) { allArrays.push(text.substring(start, i+1)); start = -1; } }
+    }
+    // 取最长的（通常是主数组）
+    if (allArrays.length > 0) {
+      allArrays.sort(function(a,b){ return b.length - a.length; });
+      jsonStr = allArrays[0];
+    }
+  }
+
+  // 策略3: 如果JSON被截断（没有闭合的]），尝试补全
+  if (!jsonStr) {
+    var lastBracket = text.lastIndexOf('[');
+    if (lastBracket >= 0) {
+      var partial = text.substring(lastBracket);
+      // 尝试补全截断的JSON
+      partial = partial.replace(/,\s*$/, '');
+      if (partial.indexOf(']') === -1) partial += '}]';
+      jsonStr = partial;
+    }
+  }
+
+  // 解析JSON（多层容错）
+  if (jsonStr) {
+    // 清理常见问题
+    jsonStr = jsonStr.replace(/[\r\n]+/g, '\n');
+    // 尝试直接解析
+    try { shots = JSON.parse(jsonStr); } catch(e) {
+      console.warn('[JSON解析失败，尝试修复]', e.message);
+      try {
+        // 修复尾逗号
+        var fixed = jsonStr.replace(/,\s*}/g,'}').replace(/,\s*\]/g,']');
+        shots = JSON.parse(fixed);
+      } catch(e2) {
+        try {
+          // 修复未闭合的字符串和对象
+          var fixed2 = jsonStr;
+          if (fixed2.lastIndexOf('}') < fixed2.lastIndexOf('"')) fixed2 += '"}';
+          if (fixed2.indexOf(']') === -1) fixed2 += ']';
+          fixed2 = fixed2.replace(/,\s*}/g,'}').replace(/,\s*\]/g,']');
+          shots = JSON.parse(fixed2);
+        } catch(e3) {
+          console.error('[JSON最终解析失败]', e3.message, '原始JSON:', jsonStr.substring(0,500));
+        }
+      }
+    }
+  }
+
+  // 如果没提取到整体描述，用JSON之前的内容
+  if (!overall) {
+    var jsonStart = jsonStr ? text.indexOf(jsonStr.substring(0,20)) : -1;
+    if (jsonStart > 0) {
+      overall = text.substring(0, jsonStart).replace(/```json?/g,'').replace(/---SPLIT---/g,'').trim();
+    } else {
+      overall = text.split('\n\n')[0].trim();
+    }
+  }
+
+  // 清理整体描述中的markdown标记
+  overall = overall.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/【整体描述】/g, '').trim();
+
+  console.log('[解析结果] overall长度:', overall.length, 'shots数量:', shots.length);
+  return { overall: overall, shots: shots };
+}
+
+/* ========== 主分析流程 ========== */
+async function startAnalysis(){
+  var n=+$('sCnt').value, ratio=$('sRatio').value;
+  showProc();
+  $('procTitle').textContent = 'AI 正在分析视频画面' + (SERVER_CONFIG.asrEnabled ? ' + 语音识别' : '');
+  try{
+    var frames=[];
+    
+    // Step 0: 解析链接（URL模式）
+    if(curVideo.type==='url'){
+      upStep(0,'on');setProg(3);
+      $('procSub').textContent='正在加载视频源...';
+      
+      var vid = await loadVideoElement(curVideo.proxyUrl || curVideo.url);
+      
+      upStep(0,'ok');setProg(8);
+      upStep(1,'on');setProg(10);
+      $('procSub').textContent=vid.videoWidth+'×'+vid.videoHeight+' · '+Math.round(vid.duration)+'s · 抽'+n+'帧';
+      frames=await extractFrames(vid,n);
+      if(vid.src.startsWith('blob:'))URL.revokeObjectURL(vid.src);
+    } else {
+      upStep(0,'ok');setProg(5);
+      upStep(1,'on');setProg(8);
+      var vid=document.createElement('video');vid.src=URL.createObjectURL(curVideo.file);vid.muted=true;vid.playsInline=true;
+      await new Promise(function(res,rej){vid.onloadedmetadata=res;vid.onerror=function(){rej(new Error('视频加载失败'))};vid.load()});
+      $('procSub').textContent=vid.videoWidth+'×'+vid.videoHeight+' · '+Math.round(vid.duration)+'s · 抽'+n+'帧';
+      frames=await extractFrames(vid,n);
+      URL.revokeObjectURL(vid.src);
+    }
+    upStep(1,'ok');setProg(20);
+
+    // === 真实语音识别（豆包语音ASR大模型）===
+    var asrPromise = null;
+    if (SERVER_CONFIG.asrEnabled) {
+      try {
+        $('procSub').textContent='正在从视频中提取音频轨道...';
+        var videoSrc = curVideo.type==='url' ? (curVideo.proxyUrl || curVideo.url) : curVideo.file;
+        var audioBase64 = await extractAudioFromVideo(videoSrc);
+        if (audioBase64) {
+          $('procSub').textContent='音频提取成功，正在调用服务端 ASR 代理识别...';
+          asrPromise = realASR(audioBase64).then(function(asrData) {
+            return parseASRResponse(asrData);
+          });
+        } else {
+          console.log('[流程] 音频提取失败（格式不支持或媒体不可读），跳过语音识别');
+        }
+      } catch(e) { console.warn('[流程] 语音识别准备异常:', e.message); }
+    } else {
+      console.log('[流程] 服务端未配置 ASR，跳过语音识别');
+    }
+    setProg(25);
+
+    var aiResult = null;
+    upStep(2,'on');$('procSub').textContent='正在发送'+frames.length+'帧给豆包AI分析画面...';setProg(30);
+    try {
+      aiResult = await aiAnalyzeFrames(frames);
+      upStep(2,'ok');setProg(50);
+    } catch(e) {
+      upStep(2,'ok');console.error('AI分析失败:', e);
+      $('procSub').textContent='AI分析失败: '+e.message+'，降级为基础模式';
+      await slp(2000);setProg(50);
+    }
+
+    upStep(3,'on');setProg(60);
+    var overall;
+    if (aiResult && aiResult.overall) {
+      overall = aiResult.overall;
+      $('procSub').textContent='AI识别完成，正在组装脚本...';
+    } else {
+      overall = '（AI分析未成功，暂无整体描述。请检查网络后重试。）';
+    }
+    await slp(200);upStep(3,'ok');setProg(70);
+
+    // === 等待真实语音识别结果 ===
+    var asrMapping = {};
+    if (asrPromise) {
+      $('procSub').textContent='等待豆包语音ASR识别结果...';
+      try {
+        var asrResults = await asrPromise;
+        if (asrResults && asrResults.length > 0) {
+          asrMapping = matchASRToFrames(asrResults, frames);
+          $('procSub').textContent='🎙 语音识别完成！识别到'+asrResults.length+'段真实台词';
+          console.log('[流程] 豆包语音ASR成功, '+Object.keys(asrMapping).length+'帧匹配到台词');
+        } else if (asrResults && asrResults.length === 0) {
+          console.log('[流程] 视频无语音内容（纯音乐/无声）');
+          $('procSub').textContent='视频无语音内容';
+        } else {
+          console.log('[流程] 语音识别未返回有效结果');
+        }
+      } catch(e) {
+        console.warn('[流程] 语音识别失败:', e.message);
+        $('procSub').textContent='⚠️ 语音识别失败: '+e.message;
+        await slp(2000);
+      }
+    }
+    setProg(73);
+
+    upStep(4,'on');setProg(75);
+    var shotScripts = frames.map(function(f, i) {
+      var aiShot = (aiResult && aiResult.shots && aiResult.shots[i]) ? aiResult.shots[i] : null;
+      var narration = '';
+      var narrSrc = '';
+      // 优先：真实语音识别(ASR) > AI画面可见字幕
+      if (asrMapping && asrMapping[i]) {
+        narration = asrMapping[i];
+        narrSrc = 'asr';
+      } else if (aiShot) {
+        narration = aiShot['旁白台词'] || aiShot['旁白'] || aiShot['台词'] || '';
+        narrSrc = narration ? 'vision' : '';
+      }
+      return {
+        number: i+1, frame: f,
+        time: fmtTime(f.time)+' - '+fmtTime(f.timeEnd),
+        shotType: aiShot ? aiShot['景别'] : '—',
+        camera: aiShot ? aiShot['运镜'] : '（AI未返回）',
+        content: aiShot ? aiShot['画面内容'] : '（AI未返回，请重试）',
+        action: aiShot ? aiShot['人物动作'] : '—',
+        mood: aiShot ? aiShot['情绪氛围'] : '—',
+        narration: narration,
+        narrSrc: narrSrc,
+        jimengPrompt: aiShot ? aiShot['即梦prompt'] : '（AI未返回，请重试）',
+        hasAI: !!aiShot
+      };
+    });
+    await slp(200);upStep(4,'ok');setProg(85);
+
+    upStep(5,'on');setProg(90);
+    results = {
+      shots: shotScripts, overall: overall, ratio: ratio, mode: '豆包AI',
+      hasAI: !!(aiResult && aiResult.shots && aiResult.shots.length > 0)
+    };
+    await slp(200);upStep(5,'ok');setProg(100);await slp(200);
+    hideProc();renderResults(results);
+  }catch(e){hideProc();toast('❌ '+e.message);console.error(e)}
+}
+
+/* ========== 渲染结果 ========== */
+function renderResults(R){
+  $('resSec').classList.add('on');
+  $('s1').textContent=R.shots.length;
+  $('s2').textContent=R.shots.length>0?(fmtTime(R.shots[R.shots.length-1].frame.timeEnd)):'—';
+  $('s3').textContent=R.mode;
+  $('s4').textContent=R.ratio;
+
+  var gv=$('gridView');gv.innerHTML='';
+  R.shots.forEach(function(s){
+    var c2=document.createElement('div');c2.className='gc';
+    c2.addEventListener('click',function(){openMdl(s)});
+    c2.innerHTML='<img src="'+s.frame.dataUrl+'"><div class="gc-n">'+s.number+'</div><div class="gc-t">'+s.time.split(' - ')[0]+'</div>';
+    gv.appendChild(c2);
+  });
+  buildMerged(R.shots);
+
+  var fs = $('fullScript');
+  var html = '<div class="full-script-title">📝 视频整体描述 & 即梦总提示词</div>';
+  html += '<div class="overall" id="overallText">'+escHtml(R.overall)+'</div>';
+  html += '<div style="text-align:right;margin:-10px 0 16px"><button class="btn btn2" style="padding:8px 16px;font-size:13px" onclick="cpTxt(document.getElementById(\'overallText\').textContent)">📋 复制整体描述</button></div>';
+
+  var seqs = groupSequences(R.shots);
+  seqs.forEach(function(seq) {
+    html += '<div class="seq-block"><div class="seq-label">'+seq.label+'</div>';
+    seq.shots.forEach(function(s) {
+      html += '<div class="shot-row"><div class="shot-time">'+s.time.split(' - ')[0]+'</div><div class="shot-content">';
+      html += '<span class="cam-tag">'+s.shotType+'</span>';
+      if (s.camera && s.camera !== '—' && s.camera !== '（AI未返回）') html += '<span class="cam-tag">🎥 '+s.camera+'</span>';
+      html += '<br><b>[分镜'+s.number+']</b> '+escHtml(s.content);
+      if (s.action && s.action !== '—') html += '<br>👤 <b>动作：</b>'+escHtml(s.action);
+      if (s.mood && s.mood !== '—') html += '<br>💫 <b>情绪：</b>'+escHtml(s.mood);
+      html += '<br>🎙️ <b>旁白/台词：</b>';
+      if (s.narration && s.narration.trim()) html += '<span class="narr-tag">「'+escHtml(s.narration)+'」</span>'+(s.narrSrc==='asr'?' <span style="font-size:11px;padding:1px 6px;background:rgba(0,184,148,.12);color:var(--ok);border-radius:4px">🎙语音识别</span>':'');
+      else html += '<span style="color:var(--text3);font-style:italic">空</span>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+  html += '<div style="text-align:right;margin-top:12px"><button class="btn btn1" style="padding:10px 20px;font-size:13px" onclick="copyFullScript()">📋 复制完整分镜脚本</button></div>';
+  fs.innerHTML = html;
+
+  var sl=$('sbList');sl.innerHTML='';
+  R.shots.forEach(function(s){
+    var card=document.createElement('div');card.className='sbc';
+    var h='<div class="sbc-h"><div class="sn">'+s.number+'</div><div class="sm">'+
+      '<div class="sm-t">'+(s.hasAI?s.shotType+' · '+s.content.substring(0,30):'镜头'+s.number)+'</div>'+
+      '<div class="sm-tags"><span class="stag">'+s.time+'</span>'+(s.shotType!=='—'?'<span class="stag">'+s.shotType+'</span>':'')+
+      (s.hasAI?'<span class="stag" style="background:rgba(0,184,148,.1);color:var(--ok);border-color:rgba(0,184,148,.2)">AI分析</span>':'')+
+      '</div></div></div>';
+    h+='<div class="sbc-b"><div class="sthumb"><img src="'+s.frame.dataUrl+'"></div><div class="sdets">';
+    h+='<div class="sf"><div class="sf-l" style="color:var(--accent2)">🎬 即梦Prompt</div>';
+    h+='<div class="pblk"><button class="cpb" onclick="cpTxt(this.parentElement.querySelector(\'.ptxt\').textContent)">复制</button><div class="ptxt">'+escHtml(s.jimengPrompt)+'</div></div></div>';
+    h+='<div class="sf"><div class="sf-l" style="color:var(--warn)">🎥 运镜</div><div class="sf-v">'+escHtml(s.camera)+'</div></div>';
+    h+='<div class="sf"><div class="sf-l" style="color:var(--ok)">🖼️ 画面内容</div><div class="sf-v">'+escHtml(s.content)+'</div></div>';
+    if(s.action && s.action !== '—') h+='<div class="sf"><div class="sf-l" style="color:var(--err)">👤 人物动作</div><div class="sf-v">'+escHtml(s.action)+'</div></div>';
+    if(s.mood && s.mood !== '—') h+='<div class="sf"><div class="sf-l" style="color:var(--text2)">💫 情绪氛围</div><div class="sf-v">'+escHtml(s.mood)+'</div></div>';
+    h+='<div class="sf"><div class="sf-l" style="color:#e056a0">🎙️ 旁白/台词</div>';
+    if (s.narration && s.narration.trim()) h+='<div class="sf-v">「'+escHtml(s.narration)+'」'+(s.narrSrc==='asr'?' <span style="font-size:11px;padding:2px 8px;background:rgba(0,184,148,.12);color:var(--ok);border-radius:4px;margin-left:6px">🎙 语音识别</span>':'')+'</div>';
+    else h+='<div class="sf-v empty">空</div>';
+    h+='</div>';
+    h+='</div></div>';
+    card.innerHTML=h;sl.appendChild(card);
+  });
+  $('resSec').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function groupSequences(shots) {
+  var seqs = [], size = 3;
+  var labels = ['Sequence 1: 开篇','Sequence 2: 发展','Sequence 3: 高潮','Sequence 4: 结局'];
+  for (var i = 0; i < shots.length; i += size) {
+    seqs.push({label: labels[Math.min(seqs.length, labels.length-1)], shots: shots.slice(i, i + size)});
+  }
+  return seqs;
+}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function copyFullScript(){
+  if(!results)return;
+  var txt='【视频整体描述】\n'+results.overall+'\n\n【完整分镜脚本】\n\n';
+  results.shots.forEach(function(s){
+    txt+='[分镜'+s.number+' '+s.time+'] '+s.shotType+'\n';
+    txt+='运镜：'+s.camera+'\n画面：'+s.content+'\n';
+    if(s.action&&s.action!=='—')txt+='动作：'+s.action+'\n';
+    if(s.mood&&s.mood!=='—')txt+='情绪：'+s.mood+'\n';
+    txt+='旁白/台词：'+(s.narration&&s.narration.trim()?'「'+s.narration+'」':'空')+'\n';
+    txt+='即梦Prompt：'+s.jimengPrompt+'\n\n';
+  });
+  cpTxt(txt);
+}
+
+function buildMerged(shots){
+  var wrap=$('mergedWrap');wrap.innerHTML='';mergedDataUrl=null;
+  var cols=3,rows=Math.ceil(shots.length/cols);var fw=shots[0].frame.w,fh=shots[0].frame.h;
+  var gap=6,pad=14,cw=fw,ch=fh;var rawW=cols*cw+(cols-1)*gap+pad*2;
+  if(rawW>1100){var sc=1100/rawW;cw=~~(cw*sc);ch=~~(ch*sc)}
+  var cvW=cols*cw+(cols-1)*gap+pad*2,cvH=rows*ch+(rows-1)*gap+pad*2;
+  var cv=document.createElement('canvas');cv.width=cvW;cv.height=cvH;var ctx=cv.getContext('2d');
+  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,cvW,cvH);var loaded=0;
+  shots.forEach(function(s,i){var img=new Image();img.onload=function(){
+    var col=i%cols,row=~~(i/cols),x=pad+col*(cw+gap),y=pad+row*(ch+gap);
+    ctx.save();rr(ctx,x,y,cw,ch,8);ctx.clip();ctx.drawImage(img,x,y,cw,ch);ctx.restore();
+    ctx.fillStyle='rgba(108,92,231,.9)';rr(ctx,x+4,y+4,24,24,6);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(s.number,x+16,y+16);
+    loaded++;if(loaded===shots.length){mergedDataUrl=cv.toDataURL('image/jpeg',.92);var d=document.createElement('img');d.src=mergedDataUrl;wrap.appendChild(d)}
+  };img.src=s.frame.dataUrl;});
+}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
+function openMdl(s){$('mdlTtl').textContent='镜头'+s.number;$('mdlImg').src=s.frame.dataUrl;$('mdlDesc').innerHTML='<b>景别：</b>'+escHtml(s.shotType)+'<br><b>运镜：</b>'+escHtml(s.camera)+'<br><b>画面：</b>'+escHtml(s.content)+'<br><b>动作：</b>'+escHtml(s.action)+'<br><b>情绪：</b>'+escHtml(s.mood)+'<br><b>旁白/台词：</b>'+(s.narration&&s.narration.trim()?'「'+escHtml(s.narration)+'」':'<i style="color:var(--text3)">空</i>');$('mdlPt').textContent=s.jimengPrompt;$('imgMdl').classList.add('on')}
+
+function exportMd(){
+  if(!results)return;
+  var md='# 视频分镜脚本（即梦AI适配 v12）\n\n## 整体描述\n\n'+results.overall+'\n\n---\n\n';
+  results.shots.forEach(function(s){
+    md+='## 分镜'+s.number+' | '+s.time+'\n\n| 要素 | 内容 |\n|---|---|\n';
+    md+='| 景别 | '+s.shotType+' |\n| 运镜 | '+s.camera+' |\n| 画面 | '+s.content+' |\n';
+    md+='| 动作 | '+s.action+' |\n| 情绪 | '+s.mood+' |\n';
+    md+='| 旁白/台词 | '+(s.narration&&s.narration.trim()?'「'+s.narration+'」':'空')+' |\n\n';
+    md+='**即梦Prompt：**\n```\n'+s.jimengPrompt+'\n```\n\n---\n\n';
+  });
+  dlBlob(new Blob([md],{type:'text/markdown'}),'storyboard_v12.md');toast('✅ 已导出');
+}
+function exportPrompts(){copyFullScript()}
+function dlMerged(){if(!mergedDataUrl){toast('请先生成');return}var a=document.createElement('a');a.href=mergedDataUrl;a.download='storyboard_grid.jpg';a.click();toast('✅ 已下载')}
+
+function showProc(){$('procOv').classList.add('on');for(var i=0;i<=5;i++){var e=$('ps'+i);if(e){e.className='pstep';e.querySelector('.pstep-i').textContent='⏳'}}setProg(0)}
+function hideProc(){$('procOv').classList.remove('on')}
+function upStep(n,st){var e=$('ps'+n);if(!e)return;e.className='pstep '+st;e.querySelector('.pstep-i').textContent=st==='on'?'🔄':'✅'}
+function setProg(p){$('progFill').style.width=p+'%'}
+function slp(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function fmtTime(s){return ~~(s/60)+':'+('0'+~~(s%60)).slice(-2)}
+function cpTxt(t){navigator.clipboard.writeText(t).then(function(){toast('✅ 已复制')}).catch(function(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);toast('✅ 已复制')})}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
+function closeFeeModal(){document.getElementById("feeModal").classList.remove("on")}
+function dlBlob(b,f){var u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=f;a.click();URL.revokeObjectURL(u)}
+</script>
+</body>
 </html>
