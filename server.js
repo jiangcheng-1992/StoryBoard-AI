@@ -22,6 +22,8 @@ const ASR_RESOURCE_ID =
 
 const MAX_JSON_BODY = process.env.MAX_JSON_BODY || "200mb";
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 120000);
+const ASR_DEBUG_SESSION = "asr-lyrics-missing";
+const asrDebugEvents = [];
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: MAX_JSON_BODY }));
@@ -256,6 +258,29 @@ app.get("/api/config", (_req, res) => {
   });
 });
 
+app.post("/api/debug/asr/event", (req, res) => {
+  const event = req.body || {};
+  if (event.sessionId !== ASR_DEBUG_SESSION) {
+    return jsonError(res, 400, "无效的调试会话");
+  }
+  asrDebugEvents.push({
+    ts: Date.now(),
+    ...event,
+  });
+  if (asrDebugEvents.length > 200) {
+    asrDebugEvents.shift();
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/debug/asr/logs", (_req, res) => {
+  res.json({
+    sessionId: ASR_DEBUG_SESSION,
+    count: asrDebugEvents.length,
+    events: asrDebugEvents,
+  });
+});
+
 app.post("/api/ai/frames", async (req, res) => {
   if (!ARK_API_KEY) {
     return jsonError(res, 500, "服务端未配置视觉模型密钥");
@@ -307,6 +332,18 @@ app.post("/api/ai/frames", async (req, res) => {
 });
 
 app.post("/api/asr", async (req, res) => {
+  // #region debug-point B:asr-request-received
+  asrDebugEvents.push({
+    ts: Date.now(),
+    sessionId: ASR_DEBUG_SESSION,
+    runId: "pre-fix",
+    hypothesisId: "B",
+    location: "server.js:/api/asr",
+    msg: "[DEBUG] ASR request received",
+    data: { hasAudioBase64: Boolean(req.body?.audioBase64), audioSize: req.body?.audioBase64 ? req.body.audioBase64.length : 0 },
+  });
+  if (asrDebugEvents.length > 200) asrDebugEvents.shift();
+  // #endregion
   if (!ASR_API_KEY) {
     return jsonError(res, 500, "服务端未配置 ASR 密钥");
   }
@@ -347,6 +384,18 @@ app.post("/api/asr", async (req, res) => {
     const text = await response.text();
 
     if (statusCode && statusCode !== "20000000") {
+      // #region debug-point B:asr-header-failure
+      asrDebugEvents.push({
+        ts: Date.now(),
+        sessionId: ASR_DEBUG_SESSION,
+        runId: "pre-fix",
+        hypothesisId: "B",
+        location: "server.js:/api/asr",
+        msg: "[DEBUG] ASR rejected by upstream headers",
+        data: { statusCode, statusMessage, bodyPreview: text.slice(0, 300) },
+      });
+      if (asrDebugEvents.length > 200) asrDebugEvents.shift();
+      // #endregion
       return jsonError(
         res,
         502,
@@ -356,6 +405,18 @@ app.post("/api/asr", async (req, res) => {
     }
 
     if (!response.ok) {
+      // #region debug-point B:asr-http-failure
+      asrDebugEvents.push({
+        ts: Date.now(),
+        sessionId: ASR_DEBUG_SESSION,
+        runId: "pre-fix",
+        hypothesisId: "B",
+        location: "server.js:/api/asr",
+        msg: "[DEBUG] ASR upstream HTTP failure",
+        data: { httpStatus: response.status, bodyPreview: text.slice(0, 300) },
+      });
+      if (asrDebugEvents.length > 200) asrDebugEvents.shift();
+      // #endregion
       return jsonError(
         res,
         response.status,
@@ -364,8 +425,37 @@ app.post("/api/asr", async (req, res) => {
       );
     }
 
-    res.json(JSON.parse(text));
+    const parsed = JSON.parse(text);
+    // #region debug-point D:asr-success-shape
+    asrDebugEvents.push({
+      ts: Date.now(),
+      sessionId: ASR_DEBUG_SESSION,
+      runId: "pre-fix",
+      hypothesisId: "D",
+      location: "server.js:/api/asr",
+      msg: "[DEBUG] ASR upstream success",
+      data: {
+        hasResult: Boolean(parsed?.result),
+        textLength: parsed?.result?.text ? parsed.result.text.length : 0,
+        utteranceCount: Array.isArray(parsed?.result?.utterances) ? parsed.result.utterances.length : -1,
+      },
+    });
+    if (asrDebugEvents.length > 200) asrDebugEvents.shift();
+    // #endregion
+    res.json(parsed);
   } catch (error) {
+    // #region debug-point B:asr-exception
+    asrDebugEvents.push({
+      ts: Date.now(),
+      sessionId: ASR_DEBUG_SESSION,
+      runId: "pre-fix",
+      hypothesisId: "B",
+      location: "server.js:/api/asr",
+      msg: "[DEBUG] ASR request exception",
+      data: { error: error.message, name: error.name },
+    });
+    if (asrDebugEvents.length > 200) asrDebugEvents.shift();
+    // #endregion
     const message =
       error.name === "AbortError" ? "语音识别请求超时" : error.message;
     jsonError(res, 502, message);

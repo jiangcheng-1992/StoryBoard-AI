@@ -151,8 +151,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 <script>
 var SERVER_CONFIG = { asrEnabled: false, visionEnabled: false };
 var curVideo=null,results=null,mergedDataUrl=null;
+var DEBUG_ASR_ENABLED = /(?:\?|&)debugAsr=1(?:&|$)/.test(location.search);
+var DEBUG_ASR_SESSION = 'asr-lyrics-missing';
 
 var $=function(id){return document.getElementById(id)};
+
+function debugAsr(hypothesisId, msg, data) {
+  if (!DEBUG_ASR_ENABLED) return;
+  fetch('/api/debug/asr/event', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      sessionId: DEBUG_ASR_SESSION,
+      runId: 'pre-fix',
+      hypothesisId: hypothesisId,
+      location: 'index.html',
+      msg: '[DEBUG] ' + msg,
+      data: data || {},
+      ts: Date.now()
+    })
+  }).catch(function(){});
+}
 
 initServerConfig();
 
@@ -335,6 +354,9 @@ async function extractAudioFromVideo(videoSource) {
       var arrayBuffer;
       if (videoSource instanceof File) {
         if (videoSource.size > 100*1024*1024) {
+          // #region debug-point C:file-too-large
+          debugAsr('C', 'audio extraction skipped because file is too large', { size: videoSource.size, sourceType: 'file' });
+          // #endregion
           console.warn('[音频提取] 文件过大:', Math.round(videoSource.size/1024/1024)+'MB');
           resolve(null); return;
         }
@@ -345,6 +367,9 @@ async function extractAudioFromVideo(videoSource) {
           if (!resp.ok) throw new Error('fetch fail');
           arrayBuffer = await resp.arrayBuffer();
         } catch(e) {
+          // #region debug-point C:remote-fetch-failed
+          debugAsr('C', 'audio extraction failed while fetching remote video', { sourceType: 'url', error: e.message, videoSource: String(videoSource).slice(0, 180) });
+          // #endregion
           console.warn('[音频提取] 无法获取视频URL:', e.message);
           resolve(null); return;
         }
@@ -356,6 +381,9 @@ async function extractAudioFromVideo(videoSource) {
       try {
         audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
       } catch(e) {
+        // #region debug-point C:decode-failed
+        debugAsr('C', 'audio extraction decodeAudioData failed', { error: e.message, byteLength: arrayBuffer.byteLength || 0 });
+        // #endregion
         console.warn('[音频提取] 解码音频失败:', e.message);
         audioCtx.close();
         resolve(null); return;
@@ -397,10 +425,16 @@ async function extractAudioFromVideo(videoSource) {
         binary += String.fromCharCode.apply(null, chunk);
       }
       var b64 = btoa(binary);
+      // #region debug-point C:audio-extracted
+      debugAsr('C', 'audio extraction succeeded', { sampleRate: sampleRate, seconds: Number((newLen/sampleRate).toFixed(1)), base64Length: b64.length });
+      // #endregion
       
       console.log('[音频提取] 成功，采样率:', sampleRate, '时长:', (newLen/sampleRate).toFixed(1)+'s', '大小:', Math.round(wavBuffer.byteLength/1024)+'KB');
       resolve(b64);
     } catch(e) {
+      // #region debug-point C:audio-exception
+      debugAsr('C', 'audio extraction threw exception', { error: e.message, name: e.name });
+      // #endregion
       console.error('[音频提取] 失败:', e);
       resolve(null);
     }
@@ -454,9 +488,15 @@ function writeString(view, offset, string) {
 
 async function realASR(audioBase64) {
   if (!SERVER_CONFIG.asrEnabled) {
+    // #region debug-point A:asr-disabled
+    debugAsr('A', 'frontend skipped ASR because config says disabled', {});
+    // #endregion
     console.log('[ASR] 服务端未配置语音识别，跳过');
     return null;
   }
+  // #region debug-point B:frontend-asr-send
+  debugAsr('B', 'frontend is sending audio to /api/asr', { base64Length: audioBase64 ? audioBase64.length : 0 });
+  // #endregion
   console.log('[ASR] 发送到服务端代理，音频大小:', Math.round(audioBase64.length * 3/4 / 1024)+'KB');
   var data = await apiJson('/api/asr', {
     method: 'POST',
@@ -469,6 +509,13 @@ async function realASR(audioBase64) {
 
 function parseASRResponse(asrData) {
   // 解析豆包语音ASR返回的utterances，提取带时间戳的文本
+  // #region debug-point D:parse-asr-shape
+  debugAsr('D', 'parseASRResponse received payload', {
+    hasResult: !!(asrData && asrData.result),
+    hasText: !!(asrData && asrData.result && asrData.result.text),
+    utteranceCount: asrData && asrData.result && Array.isArray(asrData.result.utterances) ? asrData.result.utterances.length : -1
+  });
+  // #endregion
   if (!asrData || !asrData.result) return [];
   
   var result = asrData.result;
@@ -501,6 +548,9 @@ function matchASRToFrames(asrResults, frames) {
     });
     if (ts.length > 0) map[idx] = ts.join('；');
   });
+  // #region debug-point E:match-asr-to-frames
+  debugAsr('E', 'matchASRToFrames completed', { asrResultCount: asrResults.length, frameCount: frames.length, mappedFrameCount: Object.keys(map).length });
+  // #endregion
   console.log('[ASR匹配]', Object.keys(map).length, '帧有台词，共', asrResults.length, '段语音');
   return map;
 }
@@ -631,6 +681,9 @@ async function startAnalysis(){
   $('procTitle').textContent = 'AI 正在分析视频画面' + (SERVER_CONFIG.asrEnabled ? ' + 语音识别' : '');
   try{
     var frames=[];
+    // #region debug-point A:start-analysis
+    debugAsr('A', 'startAnalysis entered', { asrEnabled: SERVER_CONFIG.asrEnabled, videoType: curVideo && curVideo.type ? curVideo.type : 'unknown', shotCount: n, ratio: ratio });
+    // #endregion
     
     // Step 0: 解析链接（URL模式）
     if(curVideo.type==='url'){
@@ -668,6 +721,9 @@ async function startAnalysis(){
             return parseASRResponse(asrData);
           });
         } else {
+          // #region debug-point C:audio-empty
+          debugAsr('C', 'audio extraction returned empty payload', { videoType: curVideo.type });
+          // #endregion
           console.log('[流程] 音频提取失败（格式不支持或媒体不可读），跳过语音识别');
         }
       } catch(e) { console.warn('[流程] 语音识别准备异常:', e.message); }
@@ -703,6 +759,9 @@ async function startAnalysis(){
       $('procSub').textContent='等待豆包语音ASR识别结果...';
       try {
         var asrResults = await asrPromise;
+        // #region debug-point D:asr-results-ready
+        debugAsr('D', 'ASR promise resolved', { asrResultCount: asrResults ? asrResults.length : -1 });
+        // #endregion
         if (asrResults && asrResults.length > 0) {
           asrMapping = matchASRToFrames(asrResults, frames);
           $('procSub').textContent='🎙 语音识别完成！识别到'+asrResults.length+'段真实台词';
@@ -714,6 +773,9 @@ async function startAnalysis(){
           console.log('[流程] 语音识别未返回有效结果');
         }
       } catch(e) {
+        // #region debug-point B:asr-promise-failed
+        debugAsr('B', 'ASR promise rejected', { error: e.message });
+        // #endregion
         console.warn('[流程] 语音识别失败:', e.message);
         $('procSub').textContent='⚠️ 语音识别失败: '+e.message;
         await slp(2000);
