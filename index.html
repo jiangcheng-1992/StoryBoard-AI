@@ -814,7 +814,7 @@ async function startAnalysis(){
 
     upStep(5,'on');setProg(90);
     results = {
-      shots: shotScripts, overall: overall, ratio: ratio, mode: '豆包AI',
+      shots: shotScripts, overall: overall, overallPrompt: buildOverallPrompt(shotScripts), ratio: ratio, mode: '豆包AI',
       hasAI: !!(aiResult && aiResult.shots && aiResult.shots.length > 0)
     };
     await slp(200);upStep(5,'ok');setProg(100);await slp(200);
@@ -842,7 +842,9 @@ function renderResults(R){
   var fs = $('fullScript');
   var html = '<div class="full-script-title">📝 视频整体描述 & 即梦总提示词</div>';
   html += '<div class="overall" id="overallText">'+escHtml(R.overall)+'</div>';
+  html += '<div class="overall" id="overallPromptText" style="margin-top:12px"><b>结构化总提示词</b>\n'+escHtml(R.overallPrompt || '')+'</div>';
   html += '<div style="text-align:right;margin:-10px 0 16px"><button class="btn btn2" style="padding:8px 16px;font-size:13px" onclick="cpTxt(document.getElementById(\'overallText\').textContent)">📋 复制整体描述</button></div>';
+  html += '<div style="text-align:right;margin:-10px 0 16px"><button class="btn btn2" style="padding:8px 16px;font-size:13px" onclick="cpTxt(document.getElementById(\'overallPromptText\').textContent)">📋 复制总提示词</button></div>';
 
   var seqs = groupSequences(R.shots);
   seqs.forEach(function(seq) {
@@ -897,11 +899,50 @@ function groupSequences(shots) {
   }
   return seqs;
 }
+function cleanText(s){return String(s||'').replace(/\s+/g,' ').trim()}
+function extractMainCharacter(content){
+  var text = cleanText(content);
+  if (!text || text === '（AI未返回，请重试）') return '主体未明确';
+  var patterns = [
+    /(一位[^，。；]{2,24})/,
+    /(一个[^，。；]{2,24})/,
+    /(女生[^，。；]{0,24})/,
+    /(女孩[^，。；]{0,24})/,
+    /(女性[^，。；]{0,24})/,
+    /(男人[^，。；]{0,24})/,
+    /(男生[^，。；]{0,24})/,
+    /(少年[^，。；]{0,24})/,
+    /(老人[^，。；]{0,24})/,
+    /(角色[^，。；]{0,24})/
+  ];
+  for (var i = 0; i < patterns.length; i++) {
+    var m = text.match(patterns[i]);
+    if (m) return m[1];
+  }
+  return text.split(/[，。；]/)[0].slice(0, 30);
+}
+function extractSceneSummary(content){
+  var text = cleanText(content);
+  if (!text || text === '（AI未返回，请重试）') return '场景未明确';
+  var parts = text.split(/[，。；]/).filter(Boolean);
+  if (parts.length > 1) return parts.slice(1).join('，').slice(0, 60) || text.slice(0, 60);
+  return text.slice(0, 60);
+}
+function buildOverallPrompt(shots){
+  if (!shots || shots.length === 0) return '暂无结构化总提示词';
+  return shots.map(function(s){
+    var person = extractMainCharacter(s.content);
+    var action = cleanText(s.action && s.action !== '—' ? s.action : s.content);
+    var scene = extractSceneSummary(s.content);
+    var narration = s.narration && s.narration.trim() ? s.narration.trim() : '无明确台词';
+    return s.time + '：人物：' + person + '；动作：' + action + '；场景：' + scene + '；台词：' + narration;
+  }).join('\n');
+}
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
 function copyFullScript(){
   if(!results)return;
-  var txt='【视频整体描述】\n'+results.overall+'\n\n【完整分镜脚本】\n\n';
+  var txt='【视频整体描述】\n'+results.overall+'\n\n【结构化总提示词】\n'+(results.overallPrompt||'')+'\n\n【完整分镜脚本】\n\n';
   results.shots.forEach(function(s){
     txt+='[分镜'+s.number+' '+s.time+'] '+s.shotType+'\n';
     txt+='运镜：'+s.camera+'\n画面：'+s.content+'\n';
@@ -934,7 +975,7 @@ function openMdl(s){$('mdlTtl').textContent='镜头'+s.number;$('mdlImg').src=s.
 
 function exportMd(){
   if(!results)return;
-  var md='# 视频分镜脚本（即梦AI适配 v12）\n\n## 整体描述\n\n'+results.overall+'\n\n---\n\n';
+  var md='# 视频分镜脚本（即梦AI适配 v12）\n\n## 整体描述\n\n'+results.overall+'\n\n## 结构化总提示词\n\n'+(results.overallPrompt||'')+'\n\n---\n\n';
   results.shots.forEach(function(s){
     md+='## 分镜'+s.number+' | '+s.time+'\n\n| 要素 | 内容 |\n|---|---|\n';
     md+='| 景别 | '+s.shotType+' |\n| 运镜 | '+s.camera+' |\n| 画面 | '+s.content+' |\n';
