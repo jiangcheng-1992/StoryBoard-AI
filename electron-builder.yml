@@ -1,0 +1,61 @@
+# electron-builder 配置
+# 打包为 Windows .exe / macOS .dmg / Linux .AppImage
+
+appId: com.soulpet.app
+productName: SoulPet
+copyright: Copyright © 2026 SoulPet
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+extraMetadata:
+  main: electron/main.js
+
+# === Windows ===
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: SoulPet-${version}-Setup.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: SoulPet 灵伴
+
+# === macOS ===
+mac:
+  target:
+    - target: dmg
+      arch: [universal]
+  icon: build/icon.icns
+  artifactName: SoulPet-${version}.${ext}
+  category: public.app-category.lifestyle
+
+dmg:
+  title: SoulPet 灵伴
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# === Linux ===
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: build/icon.png
+  artifactName: SoulPet-${version}.${ext}
+  category: Utility
