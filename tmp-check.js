@@ -712,14 +712,52 @@ function extractSceneSummary(content){
   if (parts.length > 1) return parts.slice(1).join('，').slice(0, 60) || text.slice(0, 60);
   return text.slice(0, 60);
 }
+function uniqueCompact(list, fallback, maxItems){
+  var seen = {};
+  var out = [];
+  (list || []).forEach(function(item){
+    var text = cleanText(item);
+    if (!text || text === '—' || text === '无' || text === '无明确台词' || text === '（AI未返回）' || text === '（AI未返回，请重试）') return;
+    if (!seen[text]) {
+      seen[text] = true;
+      out.push(text);
+    }
+  });
+  if (!out.length) return fallback;
+  return out.slice(0, maxItems || 2).join('；');
+}
+function buildPromptSegments(shots, targetSeconds){
+  var groups = [];
+  var current = null;
+  var maxSeconds = targetSeconds || 5;
+  shots.forEach(function(shot){
+    if (!current) {
+      current = { start: shot.frame.time, end: shot.frame.timeEnd, shots: [shot] };
+      return;
+    }
+    var nextDuration = shot.frame.timeEnd - current.start;
+    if (nextDuration <= maxSeconds || (current.end - current.start) < maxSeconds * 0.6) {
+      current.shots.push(shot);
+      current.end = shot.frame.timeEnd;
+    } else {
+      groups.push(current);
+      current = { start: shot.frame.time, end: shot.frame.timeEnd, shots: [shot] };
+    }
+  });
+  if (current) groups.push(current);
+  return groups;
+}
 function buildOverallPrompt(shots){
   if (!shots || shots.length === 0) return '暂无结构化总提示词';
-  return shots.map(function(s){
-    var person = extractMainCharacter(s.content);
-    var action = cleanText(s.action && s.action !== '—' ? s.action : s.content);
-    var scene = extractSceneSummary(s.content);
-    var narration = s.narration && s.narration.trim() ? s.narration.trim() : '无明确台词';
-    return s.time + '：人物：' + person + '；动作：' + action + '；场景：' + scene + '；台词：' + narration;
+  var groups = buildPromptSegments(shots, 5);
+  return groups.map(function(group){
+    var first = group.shots[0];
+    var last = group.shots[group.shots.length - 1];
+    var person = uniqueCompact(group.shots.map(function(s){ return extractMainCharacter(s.content); }), '主体未明确', 2);
+    var action = uniqueCompact(group.shots.map(function(s){ return s.action && s.action !== '—' ? s.action : s.content; }), '动作未明确', 3);
+    var scene = uniqueCompact(group.shots.map(function(s){ return extractSceneSummary(s.content); }), '场景未明确', 2);
+    var narration = uniqueCompact(group.shots.map(function(s){ return s.narration; }), '无明确台词', 3);
+    return fmtTime(first.frame.time) + ' - ' + fmtTime(last.frame.timeEnd) + '：人物：' + person + '；动作：' + action + '；场景：' + scene + '；台词：' + narration;
   }).join('\n');
 }
 function escHtml(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
