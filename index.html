@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -141,6 +141,8 @@ var SERVER_CONFIG = { asrEnabled: false, visionEnabled: false };
 var curVideo=null,results=null,mergedDataUrl=null;
 var DEBUG_ASR_ENABLED = /(?:\?|&)debugAsr=1(?:&|$)/.test(location.search);
 var DEBUG_ASR_SESSION = 'asr-lyrics-missing';
+var DEBUG_AI_ENABLED = /(?:\?|&)debugAi=1(?:&|$)/.test(location.search);
+var DEBUG_AI_SESSION = 'ai-no-return';
 
 var $=function(id){return document.getElementById(id)};
 
@@ -151,6 +153,23 @@ function debugAsr(hypothesisId, msg, data) {
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       sessionId: DEBUG_ASR_SESSION,
+      runId: 'pre-fix',
+      hypothesisId: hypothesisId,
+      location: 'index.html',
+      msg: '[DEBUG] ' + msg,
+      data: data || {},
+      ts: Date.now()
+    })
+  }).catch(function(){});
+}
+
+function debugAi(hypothesisId, msg, data) {
+  if (!DEBUG_AI_ENABLED) return;
+  fetch('/api/debug/ai/event', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      sessionId: DEBUG_AI_SESSION,
       runId: 'pre-fix',
       hypothesisId: hypothesisId,
       location: 'index.html',
@@ -457,6 +476,12 @@ async function aiAnalyzeFrames(frames) {
       timeLabel: fmtTime(f.time)+'-'+fmtTime(f.timeEnd)
     };
   });
+  // #region debug-point V3:frontend-ai-send
+  debugAi('V3', 'frontend is sending frames to /api/ai/frames', {
+    frameCount: payloadFrames.length,
+    firstFrameBase64Length: payloadFrames[0] && payloadFrames[0].base64 ? payloadFrames[0].base64.length : 0
+  });
+  // #endregion
   var data;
   try {
     data = await apiJson('/api/ai/frames', {
@@ -469,14 +494,19 @@ async function aiAnalyzeFrames(frames) {
       document.getElementById('feeModal').classList.add('on');
       throw new Error('模型已欠费，请催促姜承去充值！');
     }
+    // #region debug-point V1:frontend-ai-request-failed
+    debugAi('V1', 'frontend /api/ai/frames request failed', { error: e.message });
+    // #endregion
     throw e;
   }
   var text = data.content || '';
+  // #region debug-point V2:frontend-ai-content-received
+  debugAi('V2', 'frontend received AI content', { contentLength: text.length, contentPreview: text.slice(0, 300) });
+  // #endregion
   return parseAIResponse(text);
 }
 
 function parseAIResponse(text) {
-  console.log('[AI原始返回]', text);
   var overall = '';
   var shots = [];
 
@@ -563,7 +593,13 @@ function parseAIResponse(text) {
   // 清理整体描述中的markdown标记
   overall = overall.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/【整体描述】/g, '').trim();
 
-  console.log('[解析结果] overall长度:', overall.length, 'shots数量:', shots.length);
+  // #region debug-point V4:frontend-ai-parse-result
+  debugAi('V4', 'parseAIResponse finished', {
+    overallLength: overall.length,
+    shotCount: shots.length,
+    jsonFound: !!jsonStr
+  });
+  // #endregion
   return { overall: overall, shots: shots };
 }
 

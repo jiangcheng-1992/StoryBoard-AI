@@ -24,6 +24,8 @@ const MAX_JSON_BODY = process.env.MAX_JSON_BODY || "200mb";
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 120000);
 const ASR_DEBUG_SESSION = "asr-lyrics-missing";
 const asrDebugEvents = [];
+const AI_DEBUG_SESSION = "ai-no-return";
+const aiDebugEvents = [];
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: MAX_JSON_BODY }));
@@ -258,6 +260,29 @@ app.get("/api/config", (_req, res) => {
   });
 });
 
+app.post("/api/debug/ai/event", (req, res) => {
+  const event = req.body || {};
+  if (event.sessionId !== AI_DEBUG_SESSION) {
+    return jsonError(res, 400, "无效的调试会话");
+  }
+  aiDebugEvents.push({
+    ts: Date.now(),
+    ...event,
+  });
+  if (aiDebugEvents.length > 200) {
+    aiDebugEvents.shift();
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/debug/ai/logs", (_req, res) => {
+  res.json({
+    sessionId: AI_DEBUG_SESSION,
+    count: aiDebugEvents.length,
+    events: aiDebugEvents,
+  });
+});
+
 app.post("/api/debug/asr/event", (req, res) => {
   const event = req.body || {};
   if (event.sessionId !== ASR_DEBUG_SESSION) {
@@ -282,6 +307,22 @@ app.get("/api/debug/asr/logs", (_req, res) => {
 });
 
 app.post("/api/ai/frames", async (req, res) => {
+  // #region debug-point V1:ai-request-received
+  aiDebugEvents.push({
+    ts: Date.now(),
+    sessionId: AI_DEBUG_SESSION,
+    runId: "pre-fix",
+    hypothesisId: "V1",
+    location: "server.js:/api/ai/frames",
+    msg: "[DEBUG] AI frames request received",
+    data: {
+      hasArkKey: Boolean(ARK_API_KEY),
+      frameCount: Array.isArray(req.body?.frames) ? req.body.frames.length : 0,
+      firstFrameBase64Length: req.body?.frames?.[0]?.base64 ? req.body.frames[0].base64.length : 0,
+    },
+  });
+  if (aiDebugEvents.length > 200) aiDebugEvents.shift();
+  // #endregion
   if (!ARK_API_KEY) {
     return jsonError(res, 500, "服务端未配置视觉模型密钥");
   }
@@ -307,6 +348,21 @@ app.post("/api/ai/frames", async (req, res) => {
 
     const text = await response.text();
     if (!response.ok) {
+      // #region debug-point V1:ai-upstream-http-failure
+      aiDebugEvents.push({
+        ts: Date.now(),
+        sessionId: AI_DEBUG_SESSION,
+        runId: "pre-fix",
+        hypothesisId: "V1",
+        location: "server.js:/api/ai/frames",
+        msg: "[DEBUG] AI upstream HTTP failure",
+        data: {
+          httpStatus: response.status,
+          bodyPreview: text.slice(0, 500),
+        },
+      });
+      if (aiDebugEvents.length > 200) aiDebugEvents.shift();
+      // #endregion
       return jsonError(
         res,
         response.status,
@@ -318,11 +374,57 @@ app.post("/api/ai/frames", async (req, res) => {
     const data = JSON.parse(text);
     const content = data?.choices?.[0]?.message?.content;
     if (!content) {
+      // #region debug-point V2:ai-upstream-empty-content
+      aiDebugEvents.push({
+        ts: Date.now(),
+        sessionId: AI_DEBUG_SESSION,
+        runId: "pre-fix",
+        hypothesisId: "V2",
+        location: "server.js:/api/ai/frames",
+        msg: "[DEBUG] AI upstream returned empty content",
+        data: {
+          hasChoices: Array.isArray(data?.choices),
+          finishReason: data?.choices?.[0]?.finish_reason || null,
+          bodyPreview: text.slice(0, 500),
+        },
+      });
+      if (aiDebugEvents.length > 200) aiDebugEvents.shift();
+      // #endregion
       return jsonError(res, 502, "视觉模型返回内容为空");
     }
 
+    // #region debug-point V2:ai-upstream-success
+    aiDebugEvents.push({
+      ts: Date.now(),
+      sessionId: AI_DEBUG_SESSION,
+      runId: "pre-fix",
+      hypothesisId: "V2",
+      location: "server.js:/api/ai/frames",
+      msg: "[DEBUG] AI upstream success",
+      data: {
+        contentLength: content.length,
+        contentPreview: content.slice(0, 500),
+      },
+    });
+    if (aiDebugEvents.length > 200) aiDebugEvents.shift();
+    // #endregion
     res.json({ content, raw: data });
   } catch (error) {
+    // #region debug-point V1:ai-request-exception
+    aiDebugEvents.push({
+      ts: Date.now(),
+      sessionId: AI_DEBUG_SESSION,
+      runId: "pre-fix",
+      hypothesisId: "V1",
+      location: "server.js:/api/ai/frames",
+      msg: "[DEBUG] AI request exception",
+      data: {
+        name: error.name,
+        error: error.message,
+      },
+    });
+    if (aiDebugEvents.length > 200) aiDebugEvents.shift();
+    // #endregion
     const message =
       error.name === "AbortError" ? "视觉模型请求超时" : error.message;
     jsonError(res, 502, message);
